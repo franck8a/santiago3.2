@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Santiago's Writing Quiz - Formal Letter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .draggable {
+            cursor: move;
+            transition: all 0.2s;
+            touch-action: none;
+            user-select: none;
+            z-index: 10;
+        }
+        .drop-zone {
+            min-height: 50px;
+            border: 2px dashed #cbd5e1;
+            background-color: #f8fafc;
+            transition: all 0.3s;
+        }
+        .drop-zone.active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .correct-zone {
+            border: 2px solid #22c55e !important;
+            background-color: #f0fdf4 !important;
+        }
+        .match-card {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .selected-card {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.05);
+        }
+        .matched {
+            opacity: 0.5;
+            cursor: default;
+            pointer-events: none;
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans p-2 md:p-6 overflow-x-hidden">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-blue-100">
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-white text-center">
+            <h1 class="text-3xl font-bold">Writing a Formal Letter ✍️</h1>
+            <p class="text-blue-100 mt-1">¡Practica para tu test, Santiago!</p>
+            
+            <!-- Selector de Modo -->
+            <div class="flex justify-center gap-4 mt-6">
+                <button onclick="switchMode('order')" id="btn-order" class="px-4 py-2 rounded-full font-bold transition bg-white text-blue-600 shadow-lg">1. Ordenar Partes</button>
+                <button onclick="switchMode('match')" id="btn-match" class="px-4 py-2 rounded-full font-bold transition bg-blue-500 text-white hover:bg-blue-400">2. Unir Ejemplos</button>
+            </div>
+        </div>
+
+        <!-- MODO 1: ORDENAR (Drag and Drop) -->
+        <div id="mode-order" class="p-6">
+            <div class="mb-6 text-center">
+                <p class="text-slate-600 font-medium">Arrastra las partes a su posición correcta en la carta (del 1 al 6):</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <!-- Lista de etiquetas -->
+                <div id="parts-container" class="flex flex-wrap gap-3 content-start">
+                    <!-- Dinámico -->
+                </div>
+
+                <!-- Plantilla de la carta -->
+                <div class="bg-slate-50 border-2 border-slate-200 p-6 rounded-xl shadow-inner space-y-4">
+                    <div class="flex flex-col items-end space-y-2">
+                        <div class="w-full flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-400">1.</span>
+                            <div class="drop-zone w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="0" data-part="Heading">Heading</div>
+                        </div>
+                        <div class="w-full flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-400">2.</span>
+                            <div class="drop-zone w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="1" data-part="Date">Date</div>
+                        </div>
+                    </div>
+                    
+                    <div class="w-2/3 flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-400">3.</span>
+                        <div class="drop-zone w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="2" data-part="Greeting">Greeting</div>
+                    </div>
+
+                    <div class="w-full flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-400">4.</span>
+                        <div class="drop-zone h-32 w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="3" data-part="Body">Body</div>
+                    </div>
+
+                    <div class="w-1/2 flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-400">5.</span>
+                        <div class="drop-zone w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="4" data-part="Closing">Closing</div>
+                    </div>
+
+                    <div class="w-1/2 flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-400">6.</span>
+                        <div class="drop-zone w-full rounded-lg flex items-center justify-center text-sm font-bold" data-index="5" data-part="Signature">Signature</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODO 2: MATCHING (Memory/Match) -->
+        <div id="mode-match" class="hidden p-6">
+            <div class="mb-6 text-center">
+                <p class="text-slate-600 font-medium">Selecciona una "Parte" y luego su "Ejemplo" correspondiente:</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-blue-600 text-center underline">Part Name</h3>
+                    <div id="match-parts" class="space-y-2"></div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="font-bold text-blue-600 text-center underline">Example</h3>
+                    <div id="match-examples" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Footer -->
+        <div id="feedback" class="h-16 flex items-center justify-center bg-slate-100 border-t border-slate-200 text-lg font-bold">
+            <!-- Texto dinámico -->
+        </div>
+    </div>
+
+    <!-- Modal Victoria -->
+    <div id="win-modal" class="hidden fixed inset-0 bg-black/70 z-[50] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl scale-in">
+            <div class="text-6xl mb-4">🏆</div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">¡Excelente Trabajo!</h2>
+            <p class="text-slate-600 mb-6" id="win-text">Has completado esta sección perfectamente.</p>
+            <button onclick="resetAll()" class="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl transition">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        const letterParts = ["Heading", "Date", "Greeting", "Body", "Closing", "Signature"];
+        const matchData = [
+            { part: "Heading", example: "Metropolitan School, Panama City" },
+            { part: "Date", example: "October 12, 2023" },
+            { part: "Greeting", example: "Dear Mr. Rodriguez," },
+            { part: "Body", example: "I am writing to thank you..." },
+            { part: "Closing", example: "Sincerely / Respectfully," },
+            { part: "Signature", example: "(Your Name / Firma)" }
+        ];
+
+        let currentMode = 'order';
+        let correctOrderCount = 0;
+        let selectedPart = null;
+        let matchedPairs = 0;
+
+        // Inicialización
+        function initOrderMode() {
+            const container = document.getElementById('parts-container');
+            container.innerHTML = '';
+            correctOrderCount = 0;
+            
+            [...letterParts].sort(() => Math.random() - 0.5).forEach(part => {
+                const el = document.createElement('div');
+                el.className = 'draggable bg-blue-500 text-white px-4 py-2 rounded-xl font-bold shadow-md hover:scale-105 active:scale-95';
+                el.textContent = part;
+                el.draggable = true;
+                el.id = `part-${part}`;
+
+                el.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', part);
+                    e.dataTransfer.setData('sourceId', el.id);
+                });
+
+                // Soporte Touch
+                el.addEventListener('touchstart', handleTouchStart, {passive: false});
+                el.addEventListener('touchmove', handleTouchMove, {passive: false});
+                el.addEventListener('touchend', handleTouchEnd);
+
+                container.appendChild(el);
+            });
+
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.classList.remove('correct-zone');
+                zone.innerHTML = `<span class="text-slate-300">Drag here</span>`;
+                zone.addEventListener('dragover', e => e.preventDefault());
+                zone.addEventListener('drop', handleDrop);
+            });
+            
+            updateFeedback("¡Ordena la carta!");
+        }
+
+        function initMatchMode() {
+            const partsList = document.getElementById('match-parts');
+            const examplesList = document.getElementById('match-examples');
+            partsList.innerHTML = '';
+            examplesList.innerHTML = '';
+            matchedPairs = 0;
+            selectedPart = null;
+
+            const shuffledParts = [...matchData].sort(() => Math.random() - 0.5);
+            const shuffledExamples = [...matchData].sort(() => Math.random() - 0.5);
+
+            shuffledParts.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'match-card p-3 border-2 border-slate-200 rounded-xl font-bold text-center text-slate-700 bg-white';
+                div.textContent = item.part;
+                div.onclick = () => selectCard(div, 'part', item.part);
+                partsList.appendChild(div);
+            });
+
+            shuffledExamples.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'match-card p-3 border-2 border-slate-200 rounded-xl text-sm text-center text-slate-600 bg-white';
+                div.textContent = item.example;
+                div.onclick = () => selectCard(div, 'example', item.part);
+                examplesList.appendChild(div);
+            });
+
+            updateFeedback("Une cada parte con su ejemplo.");
+        }
+
+        // Lógica Modo Orden
+        function handleDrop(e) {
+            e.preventDefault();
+            const partName = e.dataTransfer.getData('text/plain');
+            const sourceId = e.dataTransfer.getData('sourceId');
+            const zone = e.currentTarget;
+            checkOrderMatch(partName, sourceId, zone);
+        }
+
+        function checkOrderMatch(name, sourceId, zone) {
+            if (zone.dataset.part === name && !zone.classList.contains('correct-zone')) {
+                zone.classList.add('correct-zone');
+                zone.innerHTML = `<span class="text-green-700">✅ ${name.toUpperCase()}</span>`;
+                document.getElementById(sourceId).style.visibility = 'hidden';
+                correctOrderCount++;
+                updateFeedback("¡Correcto!");
+                if (correctOrderCount === letterParts.length) showWin("¡Has ordenado la carta perfectamente!");
+            } else {
+                zone.classList.add('bg-red-100');
+                updateFeedback("❌ Intenta otro lugar");
+                setTimeout(() => zone.classList.remove('bg-red-100'), 500);
+            }
+        }
+
+        // Lógica Modo Match
+        function selectCard(el, type, value) {
+            if (el.classList.contains('matched')) return;
+
+            if (type === 'part') {
+                document.querySelectorAll('#match-parts .match-card').forEach(c => c.classList.remove('selected-card'));
+                el.classList.add('selected-card');
+                selectedPart = { el, value };
+            } else if (type === 'example' && selectedPart) {
+                if (selectedPart.value === value) {
+                    el.classList.add('matched');
+                    selectedPart.el.classList.add('matched');
+                    matchedPairs++;
+                    updateFeedback("¡Excelente pareja! ✨");
+                    if (matchedPairs === matchData.length) showWin("¡Eres un experto en ejemplos de cartas!");
+                } else {
+                    updateFeedback("❌ No coinciden, intenta de nuevo.");
+                    el.classList.add('bg-red-100');
+                    setTimeout(() => el.classList.remove('bg-red-100'), 500);
+                }
+                selectedPart.el.classList.remove('selected-card');
+                selectedPart = null;
+            }
+        }
+
+        // Handlers Touch
+        let touchEl = null;
+        let startX, startY;
+
+        function handleTouchStart(e) {
+            touchEl = e.currentTarget;
+            const t = e.touches[0];
+            startX = t.clientX - touchEl.offsetLeft;
+            startY = t.clientY - touchEl.offsetTop;
+            touchEl.style.position = 'fixed';
+            touchEl.style.width = touchEl.offsetWidth + 'px';
+        }
+
+        function handleTouchMove(e) {
+            if (!touchEl) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            touchEl.style.left = (t.clientX - startX) + 'px';
+            touchEl.style.top = (t.clientY - startY) + 'px';
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchEl) return;
+            const t = e.changedTouches[0];
+            touchEl.hidden = true;
+            const under = document.elementFromPoint(t.clientX, t.clientY);
+            touchEl.hidden = false;
+            
+            const zone = under ? under.closest('.drop-zone') : null;
+            if (zone) {
+                checkOrderMatch(touchEl.textContent, touchEl.id, zone);
+            }
+            
+            if (!zone || !zone.classList.contains('correct-zone')) {
+                touchEl.style.position = 'static';
+                touchEl.style.width = 'auto';
+            }
+            touchEl = null;
+        }
+
+        // Utilidades
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-order').classList.toggle('hidden', mode !== 'order');
+            document.getElementById('mode-match').classList.toggle('hidden', mode !== 'match');
+            
+            document.getElementById('btn-order').className = mode === 'order' ? 'px-4 py-2 rounded-full font-bold bg-white text-blue-600 shadow-lg' : 'px-4 py-2 rounded-full font-bold bg-blue-500 text-white';
+            document.getElementById('btn-match').className = mode === 'match' ? 'px-4 py-2 rounded-full font-bold bg-white text-blue-600 shadow-lg' : 'px-4 py-2 rounded-full font-bold bg-blue-500 text-white';
+            
+            if (mode === 'order') initOrderMode();
+            else initMatchMode();
+        }
+
+        function updateFeedback(txt) {
+            const f = document.getElementById('feedback');
+            f.textContent = txt;
+            if (txt.includes('✅') || txt.includes('✨')) f.className = 'h-16 flex items-center justify-center bg-green-50 border-t border-green-200 text-green-700 text-lg font-bold';
+            else if (txt.includes('❌')) f.className = 'h-16 flex items-center justify-center bg-red-50 border-t border-red-200 text-red-600 text-lg font-bold';
+            else f.className = 'h-16 flex items-center justify-center bg-slate-100 border-t border-slate-200 text-slate-600 text-lg font-bold';
+        }
+
+        function showWin(txt) {
+            document.getElementById('win-text').textContent = txt;
+            document.getElementById('win-modal').classList.remove('hidden');
+        }
+
+        function resetAll() {
+            document.getElementById('win-modal').classList.add('hidden');
+            if (currentMode === 'order') initOrderMode();
+            else initMatchMode();
+        }
+
+        window.onload = initOrderMode;
+    </script>
+</body>
+</html>
